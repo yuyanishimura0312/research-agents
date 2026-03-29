@@ -657,18 +657,37 @@ def save_to_dashboard(topic: str, report: str, depth: str, language: str, docx_p
         report_path = Path("research_output/report.md").resolve()
         source = f"file://{report_path}"
 
-    result = subprocess.run(
-        [
-            "bash", str(save_script),
-            "--title", topic,
-            "--summary", summary,
-            "--tags", ",".join(tags),
-            "--category", category,
-            "--source", source,
-        ],
-        capture_output=True,
-        text=True,
-    )
+    # Write full report to a temp file to avoid shell argument length limits
+    import tempfile
+    content_file = None
+    try:
+        tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False, encoding="utf-8")
+        tmp.write(report)
+        tmp.close()
+        content_file = tmp.name
+    except Exception as e:
+        print(f"  ⚠️  一時ファイル作成失敗: {e}")
+
+    cmd = [
+        "bash", str(save_script),
+        "--title", topic,
+        "--summary", summary,
+        "--tags", ",".join(tags),
+        "--category", category,
+        "--source", source,
+        "--status", "done",
+    ]
+    if content_file:
+        cmd += ["--content-file", content_file]
+
+    result = subprocess.run(cmd, capture_output=True, text=True)
+
+    # Clean up temp file
+    if content_file:
+        try:
+            os.remove(content_file)
+        except OSError:
+            pass
 
     if result.returncode == 0:
         print(f"  ✅ Dashboard に登録完了: {result.stdout.strip()}")
