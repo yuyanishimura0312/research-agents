@@ -357,6 +357,14 @@ def create_report_writer(language: str) -> Agent:
             - Balance depth with readability
             - Use clear, jargon-free language accessible to non-specialists
 
+            CRITICAL WRITING STYLE:
+            - レポートは必ず「文章（地の文・散文）」で記述すること
+            - 箇条書きや表だけで構成してはならない
+            - 分析・考察・説明はすべて文章として展開すること
+            - 表は数値データの整理など、補助的な用途にのみ使用
+            - 箇条書きは列挙が必要な場合に限定的に使用
+            - 各セクションは複数の段落で構成し、論理の流れが文章で追えるようにする
+
             Report structure:
             # [テーマ]
             ## エグゼクティブサマリー
@@ -372,7 +380,7 @@ def create_report_writer(language: str) -> Agent:
 
             Important:
             - Every factual claim needs a citation
-            - Include data in tables where appropriate
+            - Tables are for numerical data only — analysis must be in prose
             - Note limitations honestly
             - Provide actionable recommendations
             {lang}"""),
@@ -569,6 +577,10 @@ async def run_research(topic: str, depth: str = "standard", language: str = "ja"
 
 DASHBOARD_DIR = Path.home() / "research-dashboard"
 
+GOOGLE_DRIVE_DIR = Path.home() / "Library" / "CloudStorage" / "GoogleDrive-REDACTED" / "マイドライブ"
+GOOGLE_DRIVE_RESEARCH_DIR = GOOGLE_DRIVE_DIR / "Research Reports"
+
+
 def convert_to_docx(report_path: Path):  # -> Optional[Path]
     """Markdown レポートを .docx に変換"""
     try:
@@ -580,14 +592,40 @@ def convert_to_docx(report_path: Path):  # -> Optional[Path]
         )
         if result.returncode == 0:
             print(f"  ✅ Word 文書: {docx_path}")
-            # Open in default app (macOS)
-            subprocess.run(["open", str(docx_path)])
+            # Google Drive に自動コピー → Google ドキュメントで開く
+            gdocs_path = copy_to_google_drive(docx_path)
+            if gdocs_path:
+                subprocess.run(["open", str(gdocs_path)])
+            else:
+                subprocess.run(["open", str(docx_path)])
             return docx_path
         else:
             print(f"  ⚠️  変換エラー: {result.stderr.strip()}")
             return None
     except Exception as e:
         print(f"  ⚠️  変換スキップ: {e}")
+        return None
+
+
+def copy_to_google_drive(docx_path: Path):  # -> Optional[Path]
+    """docx を Google Drive にコピーし、Google ドキュメントで開けるようにする"""
+    import shutil
+
+    if not GOOGLE_DRIVE_DIR.exists():
+        print(f"  ⚠️  Google Drive が見つかりません: {GOOGLE_DRIVE_DIR}")
+        return None
+
+    try:
+        # Research Reports フォルダを作成（なければ）
+        GOOGLE_DRIVE_RESEARCH_DIR.mkdir(exist_ok=True)
+
+        dest = GOOGLE_DRIVE_RESEARCH_DIR / docx_path.name
+        shutil.copy2(str(docx_path), str(dest))
+        print(f"  ✅ Google Drive にコピー: {dest.name}")
+        print(f"     → Google ドキュメントで自動的に開きます")
+        return dest
+    except Exception as e:
+        print(f"  ⚠️  Google Drive コピー失敗: {e}")
         return None
 
 
