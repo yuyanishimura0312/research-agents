@@ -577,7 +577,7 @@ async def run_research(topic: str, depth: str = "standard", language: str = "ja"
 
 DASHBOARD_DIR = Path.home() / "research-dashboard"
 
-GOOGLE_DRIVE_DIR = Path.home() / "Library" / "CloudStorage" / "GoogleDrive-REDACTED" / "マイドライブ"
+GOOGLE_DRIVE_DIR = Path(os.environ.get("GOOGLE_DRIVE_DIR", str(Path.home() / "Google Drive")))
 GOOGLE_DRIVE_RESEARCH_DIR = GOOGLE_DRIVE_DIR / "Research Reports"
 
 
