@@ -550,9 +550,13 @@ async def run_research(topic: str, depth: str = "standard", language: str = "ja"
         print(f"     - {f.name} ({size:,} bytes)")
     print(f"\n{'='*60}\n")
 
-    # --- Phase 6: Dashboard Registration ---
-    print(f"\n📊 Phase 6: Research Dashboard に登録")
-    save_to_dashboard(topic, report, depth, language)
+    # --- Phase 6: Convert to .docx ---
+    print(f"\n📄 Phase 6: Word 文書に変換")
+    docx_path = convert_to_docx(report_path)
+
+    # --- Phase 7: Dashboard Registration ---
+    print(f"\n📊 Phase 7: Research Dashboard に登録")
+    save_to_dashboard(topic, report, depth, language, docx_path)
 
     # Print report preview
     preview_lines = report.split("\n")[:30]
@@ -565,7 +569,29 @@ async def run_research(topic: str, depth: str = "standard", language: str = "ja"
 
 DASHBOARD_DIR = Path.home() / "research-dashboard"
 
-def save_to_dashboard(topic: str, report: str, depth: str, language: str):
+def convert_to_docx(report_path: Path):  # -> Optional[Path]
+    """Markdown レポートを .docx に変換"""
+    try:
+        convert_script = Path(__file__).parent / "convert_report.py"
+        docx_path = report_path.with_suffix(".docx")
+        result = subprocess.run(
+            ["python3", str(convert_script), str(report_path), str(docx_path)],
+            capture_output=True, text=True,
+        )
+        if result.returncode == 0:
+            print(f"  ✅ Word 文書: {docx_path}")
+            # Open in default app (macOS)
+            subprocess.run(["open", str(docx_path)])
+            return docx_path
+        else:
+            print(f"  ⚠️  変換エラー: {result.stderr.strip()}")
+            return None
+    except Exception as e:
+        print(f"  ⚠️  変換スキップ: {e}")
+        return None
+
+
+def save_to_dashboard(topic: str, report: str, depth: str, language: str, docx_path=None):
     """調査結果を Research Dashboard に自動登録"""
     save_script = DASHBOARD_DIR / "save-research.sh"
     if not save_script.exists():
@@ -586,9 +612,12 @@ def save_to_dashboard(topic: str, report: str, depth: str, language: str):
     # Guess a category from the topic
     category = _guess_category(topic)
 
-    # Report file path as source reference
-    report_path = Path("research_output/report.md").resolve()
-    source = f"file://{report_path}"
+    # Link to docx if available, otherwise markdown
+    if docx_path and docx_path.exists():
+        source = f"file://{docx_path.resolve()}"
+    else:
+        report_path = Path("research_output/report.md").resolve()
+        source = f"file://{report_path}"
 
     result = subprocess.run(
         [
