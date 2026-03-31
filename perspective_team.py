@@ -32,8 +32,19 @@ from datetime import datetime
 from pathlib import Path
 from textwrap import dedent
 
+# Load .env from script directory
+_env_path = Path(__file__).parent / ".env"
+if _env_path.exists():
+    for line in _env_path.read_text().splitlines():
+        if "=" in line and not line.startswith("#"):
+            key, val = line.split("=", 1)
+            os.environ.setdefault(key.strip(), val.strip())
+
 import anthropic
-from duckduckgo_search import DDGS
+try:
+    from ddgs import DDGS
+except ImportError:
+    from duckduckgo_search import DDGS
 
 
 # === Configuration ===
