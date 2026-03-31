@@ -732,7 +732,7 @@ async def run_pestle(topic: str, depth: str = "standard", language: str = "ja"):
 
 # === Dashboard integration (same as research_team.py) ===
 
-DASHBOARD_DIR = Path.home() / "research-dashboard"
+DASHBOARD_DIR = Path.home() / "projects" / "research" / "research-dashboard"
 GOOGLE_DRIVE_DIR = Path(os.environ.get("GOOGLE_DRIVE_DIR", str(Path.home() / "Google Drive")))
 GOOGLE_DRIVE_RESEARCH_DIR = GOOGLE_DRIVE_DIR / "Research Reports"
 
